@@ -1,0 +1,105 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Дашборд{% endblock %}
+{% block header %}Дашборд{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Дашборд</h1>
+
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+    <!-- Карточка для общего количества задач -->
+    <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Общее количество задач</h2>
+      <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ total_tasks }}</p>
+    </div>
+
+    <!-- Карточка для задач, взятых в работу -->
+    <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 border border-gray-200 dark:border-gray-700 flex flex-col justify-between">
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Задачи в работе</h2>
+      <p class="text-3xl font-bold text-gray-900 dark:text-gray-100">{{ tasks_in_progress_by_user }}</p>
+    </div>
+
+    <!-- Карточка для графика по статусам -->
+    <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 border border-gray-200 dark:border-gray-700 flex flex-col">
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Задачи по статусам</h2>
+      <div class="chart-container">
+        <canvas id="statusChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Карточка для графика по приоритетам -->
+    <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 border border-gray-200 dark:border-gray-700 flex flex-col">
+      <h2 class="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-4">Задачи по приоритетам</h2>
+      <div class="chart-container">
+        <canvas id="priorityChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .chart-container {
+    position: relative;
+    height: 200px; /* Fixed height for charts */
+    width: 100%;
+  }
+
+  .chart-container canvas {
+    max-height: 100%;
+    width: 100%;
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const statusData = {
+    labels: [{% for item in tasks_by_status %}'{{ item.status }}',{% endfor %}],
+    datasets: [{
+      label: 'Задачи по статусам',
+      data: [{% for item in tasks_by_status %}{{ item.count }},{% endfor %}],
+      backgroundColor: ['#2563EB', '#16A34A', '#D97706', '#DC2626'],
+      borderColor: ['#1E3A8A', '#15803D', '#B45309', '#B91C1C'],
+      borderWidth: 1
+    }]
+  };
+
+  const priorityData = {
+    labels: [{% for item in tasks_by_priority %}'{{ item.priority }}',{% endfor %}],
+    datasets: [{
+      label: 'Задачи по приоритетам',
+      data: [{% for item in tasks_by_priority %}{{ item.count }},{% endfor %}],
+      backgroundColor: ['#DC2626', '#D97706', '#16A34A'],
+      borderColor: ['#B91C1C', '#B45309', '#15803D'],
+      borderWidth: 1
+    }]
+  };
+
+  const statusChart = new Chart(document.getElementById('statusChart'), {
+    type: 'bar',
+    data: statusData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        y: { beginAtZero: true }
+      },
+      plugins: {
+        legend: { display: false }
+      }
+    }
+  });
+
+  const priorityChart = new Chart(document.getElementById('priorityChart'), {
+    type: 'pie',
+    data: priorityData,
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom' }
+      }
+    }
+  });
+</script>
+{% endblock %}

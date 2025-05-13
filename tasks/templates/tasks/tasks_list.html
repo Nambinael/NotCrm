@@ -1,0 +1,99 @@
+{% extends 'core/base.html' %}
+{% load widget_tweaks %}
+{% block title %}Задачи{% endblock %}
+{% block header %}Список задач{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100"><i class="fas fa-tasks mr-2"></i>Список задач</h1>
+    <a href="{% url 'add_task' %}" class="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
+      <i class="fas fa-plus mr-2"></i>Добавить задачу
+    </a>
+  </div>
+
+  <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-lg border border-gray-200 dark:border-gray-600">
+    <p><strong>Количество задач:</strong> {{ tasks_with_permissions|length }}</p>
+    <p><strong>Текущий пользователь:</strong> {{ user.username }}</p>
+    <p><strong>Команды пользователя:</strong>
+      {% for team in user.teams.all %}
+        {{ team.name }}{% if not forloop.last %}, {% endif %}
+      {% empty %}
+        Нет команд
+      {% endfor %}
+    </p>
+  </div>
+
+  <div class="overflow-x-auto rounded-lg shadow-lg border border-gray-200 dark:border-gray-700">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-600 bg-white dark:bg-gray-800 text-sm">
+      <thead class="bg-blue-600 text-white">
+        <tr>
+          <th class="px-4 py-3 text-left font-semibold">Задача</th>
+          <th class="px-4 py-3 text-left font-semibold">Проект</th>
+          <th class="px-4 py-3 text-left font-semibold">№</th>
+          <th class="px-4 py-3 text-left font-semibold hidden md:table-cell">Описание</th>
+          <th class="px-4 py-3 text-left font-semibold">Приоритет</th>
+          <th class="px-4 py-3 text-left font-semibold">Статус</th>
+          <th class="px-4 py-3 text-left font-semibold hidden lg:table-cell">Исполнители</th>
+          <th class="px-4 py-3 text-left font-semibold hidden lg:table-cell">Взял в работу</th>
+          <th class="px-4 py-3 text-left font-semibold hidden md:table-cell">Теги</th>
+          <th class="px-4 py-3 text-left font-semibold">Срок</th>
+          <th class="px-4 py-3 text-left font-semibold">Действия</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100 dark:divide-gray-600">
+        {% for item in tasks_with_permissions %}
+          <tr class="{% cycle 'bg-gray-50 dark:bg-gray-700' 'bg-white dark:bg-gray-800' %}">
+            <td class="px-4 py-2 font-medium">
+              <a href="{% url 'tasks_detail' item.task.id %}" class="text-blue-600 dark:text-blue-400 hover:underline">{{ item.task.name }}</a>
+            </td>
+            <td class="px-4 py-2 text-gray-700 dark:text-gray-200">{{ item.task.project.name|default:"-" }}</td>
+            <td class="px-4 py-2 text-gray-700 dark:text-gray-200">{{ item.task.id }}</td>
+            <td class="px-4 py-2 hidden md:table-cell text-gray-700 dark:text-gray-200">{{ item.task.description|truncatewords:10|default:"-" }}</td>
+            <td class="px-4 py-2">
+              <span class="{% if item.task.priority == 'HIGH' %}text-red-600{% elif item.task.priority == 'MED' %}text-yellow-600{% else %}text-green-600{% endif %}">
+                {{ item.task.get_priority_display }}
+              </span>
+            </td>
+            <td class="px-4 py-2  ">
+              <span class="{% if item.task.status == 'DONE' %}text-green-600{% elif item.task.status == 'INPG' %}text-blue-600{% elif item.task.status == 'TAKEN' %}text-purple-600{% else %}text-gray-600{% endif %}">
+                {{ item.task.get_status_display }}
+              </span>
+            </td>
+            <td class="px-4 py-2 hidden lg:table-cell text-gray-700 dark:text-gray-200">
+              {% for assignment in item.task.assignments.all %}
+                {% if assignment.role == 'ASSIGNEE' or assignment.role == 'CO_ASSIGNEE' %}
+                  {{ assignment.user.username }}{% if not forloop.last %}, {% endif %}
+                {% endif %}
+              {% empty %}
+                -
+              {% endfor %}
+            </td>
+            <td class="px-4 py-2 hidden lg:table-cell text-gray-700 dark:text-gray-200">{{ item.task.taken_in_progress_by.username|default:"-" }}</td>
+            <td class="px-4 py-2 hidden md:table-cell">
+              {% for tag in item.task.tags.all %}
+                <span class="inline-block bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-2 py-1 rounded text-xs">{{ tag.name }}</span>
+              {% empty %}
+                -
+              {% endfor %}
+            </td>
+            <td class="px-4 py-2 text-gray-700 dark:text-gray-200">{{ item.task.deadline_time|date:"d.m.Y H:i"|default:"-" }}</td>
+            <td class="px-4 py-2 flex flex-wrap gap-2">
+              {% if item.can_take %}
+                <a href="{% url 'take_task' item.task.id %}" class="text-blue-600 dark:text-blue-400 hover:underline">Взять</a>
+              {% endif %}
+              {% if item.can_edit %}
+                <a href="{% url 'tasks_edit' item.task.id %}" class="text-green-600 dark:text-green-400 hover:underline">Редактировать</a>
+              {% endif %}
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="11" class="text-center py-4 text-gray-600 dark:text-gray-400 italic">Нет доступных задач</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

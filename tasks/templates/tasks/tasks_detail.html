@@ -1,0 +1,178 @@
+{% extends 'core/base.html' %}
+{% load widget_tweaks %}
+{% block title %}Задача: {{ task.name }}{% endblock %}
+{% block header %}{{ task.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  <div class="bg-white dark:bg-gray-800 shadow-lg rounded-lg p-6 border border-gray-200 dark:border-gray-700 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div>
+        <p><strong>Проект:</strong> {{ task.project.name|default:"-" }}</p>
+        <p><strong>Описание:</strong> {{ task.description|default:"-" }}</p>
+        <p><strong>Приоритет:</strong>
+          <span class="{% if task.priority == 'HIGH' %}text-red-600{% elif task.priority == 'MEDIUM' %}text-yellow-600{% else %}text-green-600{% endif %}">
+            {{ task.get_priority_display }}
+          </span>
+        </p>
+        <p><strong>Статус:</strong>
+          <span class="{% if task.status == 'COMPLETED' %}text-green-600{% elif task.status == 'IN_PROGRESS' %}text-blue-600{% elif task.status == 'OPEN' %}text-purple-600{% else %}text-gray-600{% endif %}">
+            {{ task.get_status_display }}
+          </span>
+        </p>
+      </div>
+      <div>
+        <p><strong>Назначения:</strong>
+          {% for assignment in assignments %}
+            {{ assignment.user.username }} ({{ assignment.get_role_display }}){% if not forloop.last %}, {% endif %}
+          {% empty %}
+            -
+          {% endfor %}
+        </p>
+        <p><strong>Взял в работу:</strong> {{ task.taken_in_progress_by.username|default:"-" }}</p>
+        <p><strong>Теги:</strong>
+          {% for tag in task.tags.all %}
+            <span class="inline-block bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 px-2 py-1 rounded text-xs">{{ tag.name }}</span>
+          {% empty %}
+            -
+          {% endfor %}
+        </p>
+        <p><strong>Срок:</strong> {{ task.deadline_time|date:"d.m.Y H:i"|default:"-" }}</p>
+        <p><strong>Создатель:</strong> {{ task.created_by.username }}</p>
+        <p><strong>Дата создания:</strong> {{ task.created_at|date:"d.m.Y H:i" }}</p>
+        <p><strong>Дата изменения:</strong> {{ task.updated_at|date:"d.m.Y H:i" }}</p>
+      </div>
+    </div>
+  </div>
+
+  {% if comment_form %}
+    <div class="mt-6">
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Добавить комментарий</h2>
+      <form method="post" class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        {% csrf_token %}
+          <input type="hidden" name="comment_submit" value="1">
+          <div class="space-y-2">
+            {% render_field comment_form.content class="mt-1 block w-full rounded-lg border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 focus:ring-blue-500 focus:border-blue-500" %}
+          {% if comment_form.content.errors %}
+            <div class="text-sm text-red-500 mt-1">
+              {% for error in comment_form.content.errors %}
+                <p>{{ error }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
+          Отправить комментарий
+        </button>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="mt-6">
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Комментарии</h2>
+    {% for comment in comments %}
+      <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4 border border-gray-200 dark:border-gray-600">
+        <p><strong>{{ comment.author.username }}</strong> <span class="text-gray-500 dark:text-gray-400 text-sm">({{ comment.created_at|date:"d.m.Y H:i" }})</span></p>
+        <p class="mt-1 text-gray-700 dark:text-gray-200">{{ comment.content }}</p>
+      </div>
+    {% empty %}
+      <p class="text-gray-600 dark:text-gray-400">Комментариев пока нет.</p>
+    {% endfor %}
+  </div>
+
+  {% if attachment_form %}
+    <div class="mt-6">
+      <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Прикрепить файл</h2>
+      <form method="post" enctype="multipart/form-data" class="bg-white dark:bg-gray-800 p-6 rounded-lg border border-gray-200 dark:border-gray-700">
+        {% csrf_token %}
+        <input type="hidden" name="attachment_submit" value="1">
+        <div class="space-y-2">
+          <input type="file" id="file-input" name="{{ attachment_form.file.name }}" class="hidden" accept=".pdf,.doc,.docx,.jpg,.png,.jpeg">
+          <a href="#" id="file-link" class="text-blue-600 dark:text-blue-400 hover:underline">
+            <i class="fas fa-paperclip mr-1"></i>Выбрать файл
+          </a>
+          <div id="file-name" class="text-sm text-gray-600 dark:text-gray-400 mt-1"></div>
+          {% if attachment_form.file.errors %}
+            <div class="text-sm text-red-500 mt-1">
+              {% for error in attachment_form.file.errors %}
+                <p>{{ error }}</p>
+              {% endfor %}
+            </div>
+          {% endif %}
+        </div>
+        <button type="submit" class="mt-4 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
+          Загрузить файл
+        </button>
+      </form>
+    </div>
+  {% endif %}
+
+  <div class="mt-6">
+    <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-100 mb-4">Вложения</h2>
+    {% for attachment in attachments %}
+      <div class="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg mb-4 border border-gray-200 dark:border-gray-600">
+        <p>
+          <a href="{{ attachment.file.url }}" class="text-blue-600 dark:text-blue-400 hover:underline" target="_blank">
+            {{ attachment.file.name|cut:"task_attachments/" }}
+          </a>
+        </p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">
+          Загрузил: {{ attachment.uploaded_by.username|default:"Неизвестно" }}
+          ({{ attachment.uploaded_at|date:"d.m.Y H:i" }})
+        </p>
+        <form method="post" action="{% url 'tasks_detail' task.id %}" class="mt-2">
+          {% csrf_token %}
+          <input type="hidden" name="delete_attachment" value="{{ attachment.id }}">
+          <button type="submit" class="text-red-500 dark:text-red-400 hover:underline text-sm" onclick="return confirm('Вы уверены, что хотите удалить это вложение?')">
+            Удалить
+          </button>
+        </form>
+      </div>
+    {% empty %}
+      <p class="text-gray-600 dark:text-gray-400">Вложений пока нет.</p>
+    {% endfor %}
+  </div>
+
+  <div class="mt-6 flex flex-wrap gap-2">
+    {% if can_take %}
+      <a href="{% url 'take_task' task.id %}" class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition">
+        Взять
+      </a>
+    {% endif %}
+    {% if can_edit %}
+      <a href="{% url 'tasks_edit' task.id %}" class="inline-block bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition">
+        Редактировать
+      </a>
+    {% endif %}
+    {% if can_delete %}
+      <a href="{% url 'tasks_delete' task.id %}" class="inline-block bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition">
+        Удалить
+      </a>
+    {% endif %}
+    <a href="{% url 'tasks_list' %}" class="inline-block bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-100 px-4 py-2 rounded-lg font-semibold hover:bg-gray-400 dark:hover:bg-gray-500 transition">
+      Назад
+    </a>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const fileInput = document.getElementById('file-input');
+  const fileLink = document.getElementById('file-link');
+  const fileNameDisplay = document.getElementById('file-name');
+
+  fileLink.addEventListener('click', function(event) {
+    event.preventDefault();
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', function() {
+    if (fileInput.files.length > 0) {
+      fileNameDisplay.textContent = `Выбран: ${fileInput.files[0].name}`;
+    } else {
+      fileNameDisplay.textContent = '';
+    }
+  });
+});
+</script>
+{% endblock %}
