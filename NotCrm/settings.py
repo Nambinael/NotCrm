@@ -99,7 +99,12 @@ WSGI_APPLICATION = 'NotCrm.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'HOST': '',
+        'PORT': '3306',
+        'NAME': '$NotCrm',
+        'USER': '',
+        'PASSWORD': '',
+
     }
 }
 
